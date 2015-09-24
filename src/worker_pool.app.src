@@ -26,6 +26,5 @@
 		stdlib
 	]},
 	{env, [
-		{processes_by_core, 5}
 	]}
 ]}.
