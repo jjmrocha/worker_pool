@@ -17,6 +17,8 @@
 
 -behaviour(gen_server).
 
+-define(EMPTY, []).
+
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %% ====================================================================
@@ -28,23 +30,23 @@
 	call/2,
 	call/3]).
 
-start_link(Name) ->
-	gen_server:start_link(?MODULE, [Name], []).
+start_link(PoolName) ->
+	gen_server:start_link({local, PoolName}, ?MODULE, [PoolName], []).
 
-add_worker(Name, Pid) ->
-	gen_server:call(Name, {add_worker, Pid}).
+add_worker(PoolName, Pid) ->
+	gen_server:call(PoolName, {add_worker, Pid}).
 
-cast(Name, Msg) ->
-	gen_server:cast(Name, Msg).
+cast(PoolName, Msg) ->
+	gen_server:cast(PoolName, Msg).
 
-call(Name, Msg) ->
-	case gen_server:call(Name, {next_worker}) of
+call(PoolName, Msg) ->
+	case gen_server:call(PoolName, {next_worker}) of
 		{ok, Pid} -> gen_server:call(Pid, Msg);
 		Other -> {error, Other}
 	end.
 
-call(Name, Msg, Timeout) ->
-	case gen_server:call(Name, {next_worker}) of
+call(PoolName, Msg, Timeout) ->
+	case gen_server:call(PoolName, {next_worker}) of
 		{ok, Pid} -> gen_server:call(Pid, Msg, Timeout);
 		Other -> {error, Other}
 	end.
@@ -52,27 +54,26 @@ call(Name, Msg, Timeout) ->
 %% ====================================================================
 %% Behavioural functions
 %% ====================================================================
-init([Name]) ->
-	process_flag(trap_exit, true),	
-	erlang:register(Name, self()),
-	error_logger:info_msg("~p starting on [~p]...\n", [Name, self()]),
-	{ok, []}.
+init([PoolName]) ->
+	error_logger:info_msg("~p starting on [~p]...\n", [PoolName, self()]),
+	{ok, ?EMPTY}.
 
 %% handle_call/3
-handle_call({next_worker}, _From, State=[]) ->
+handle_call({next_worker}, _From, State=?EMPTY) ->
 	{reply, empty_pool, State};
 handle_call({next_worker}, _From, State) ->
 	{Worker, NewState} = next_worker(State),
 	Reply = {ok, Worker},
 	{reply, Reply, NewState};
-handle_call({add_worker, Worker}, _From, Workers) ->
+handle_call({add_worker, Worker}, _From, State) ->
 	erlang:monitor(process, Worker),
-	{reply, ok, [Worker|Workers]};
+	NewState = add_worker_to_list(Worker, State),
+	{reply, ok, NewState};
 handle_call(_Request, _From, State) ->
 	{reply, invalid_request, State}.
 
 %% handle_cast/2
-handle_cast(_Msg, State=[]) ->
+handle_cast(_Msg, State=?EMPTY) ->
 	{noreply, State};
 handle_cast(Msg, State) ->
 	{Worker, NewState} = next_worker(State),
@@ -83,7 +84,7 @@ handle_cast(Msg, State) ->
 handle_info({'DOWN', _, _, Worker, _}, State) ->
 	NewState = delete_worker(Worker, State),
 	{noreply, NewState};
-handle_info(_Info, State=[]) ->
+handle_info(_Info, State=?EMPTY) ->
 	{noreply, State};
 handle_info(Info, State) ->
 	{Worker, NewState} = next_worker(State),
@@ -101,6 +102,9 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
+
+add_worker_to_list(Worker, Workers) ->
+	[Worker|Workers].
 
 next_worker([Worker|T]) ->
 	Workers = T ++ [Worker],

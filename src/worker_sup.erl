@@ -25,15 +25,15 @@
 %% ====================================================================
 -export([start_link/5]).
 
-start_link(Name, WorkerCount, Module, Function, Args) ->
-	supervisor:start_link(?MODULE, [Name, WorkerCount, Module, Function, Args]).
+start_link(PoolName, WorkerCount, Module, Function, Args) ->
+	supervisor:start_link(?MODULE, [PoolName, WorkerCount, Module, Function, Args]).
 
 %% ====================================================================
 %% Behavioural functions
 %% ====================================================================
 
-init([Name, WorkerCount, Module, Function, Args]) ->
-	Workers = [{worker(Name, N), {worker_pool_worker, start_worker, [Name, Module, Function, Args]}, permanent, infinity, worker, [worker_pool_worker]} || N <- lists:seq(1, WorkerCount)],
+init([PoolName, WorkerCount, Module, Function, Args]) ->
+	Workers = [{worker(PoolName, N), {worker_pool_worker, start_worker, [PoolName, Module, Function, Args]}, permanent, infinity, worker, [worker_pool_worker]} || N <- lists:seq(1, WorkerCount)],
 	{ok, {{one_for_one, 10, 60}, Workers}}.
 
 %% ====================================================================

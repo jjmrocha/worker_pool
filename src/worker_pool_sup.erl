@@ -23,22 +23,41 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([start_link/5]).
+-export([start_pool/2,
+  start_pool/3,
+  stop_pool/1]).
 
-start_link(Name, WorkerCount, Module, Function, Args) when is_atom(Name) 
+start_pool(PoolName, {Module, Function, Args}) when is_atom(PoolName) 
+    andalso is_atom(Module) 
+    andalso is_atom(Module) 
+    andalso is_list(Args) ->
+  WorkerCount = erlang:system_info(schedulers),
+  start_pool(PoolName, WorkerCount, {Module, Function, Args}).
+
+start_pool(PoolName, WorkerCount, {Module, Function, Args}) when is_atom(PoolName) 
     andalso is_integer(WorkerCount) 
     andalso is_atom(Module) 
     andalso is_atom(Module) 
     andalso is_list(Args) ->
-  supervisor:start_link(?MODULE, [Name, WorkerCount, Module, Function, Args]).
+  SuperName = supervisor_name(PoolName),
+  supervisor:start_link({local, SuperName}, ?MODULE, [PoolName, WorkerCount, Module, Function, Args]).
+
+stop_pool(PoolName) when is_atom(PoolName) ->
+  SuperName = supervisor_name(PoolName),
+  case whereis(SuperName) of
+    undefined -> ok;
+    Pid ->
+      unlink(Pid),
+      exit(Pid, shutdown)
+  end.
 
 %% ====================================================================
 %% Behavioural functions
 %% ====================================================================
 
-init([Name, WorkerCount, Module, Function, Args]) ->
-  Pool = {pool_name(Name), {worker_pool, start_link, [Name]}, permanent, infinity, worker, [worker_pool]},
-  PoolSup = {supervisor_name(Name), {worker_sup, start_link, [Name, WorkerCount, Module, Function, Args]}, permanent, infinity, supervisor, [worker_sup]},
+init([PoolName, WorkerCount, Module, Function, Args]) ->
+  Pool = {pool_name(PoolName), {worker_pool, start_link, [PoolName]}, permanent, infinity, worker, [worker_pool]},
+  PoolSup = {worker_supervisor_name(PoolName), {worker_sup, start_link, [PoolName, WorkerCount, Module, Function, Args]}, permanent, infinity, supervisor, [worker_sup]},
   Procs = [Pool, PoolSup],
   {ok, {{one_for_one, 10, 60}, Procs}}.
 
@@ -46,8 +65,11 @@ init([Name, WorkerCount, Module, Function, Args]) ->
 %% Internal functions
 %% ====================================================================
 
+supervisor_name(PoolName) ->
+  list_to_atom(atom_to_list(PoolName) ++ "_sup").
+
 pool_name(PoolName) ->
   atom_to_list(PoolName) ++ "_pool".
 
-supervisor_name(PoolName) ->
-  list_to_atom(atom_to_list(PoolName) ++ "_sup").
+worker_supervisor_name(PoolName) ->
+  list_to_atom(atom_to_list(PoolName) ++ "_worker_sup").

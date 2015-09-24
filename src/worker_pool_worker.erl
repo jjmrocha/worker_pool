@@ -21,10 +21,10 @@
 %% ====================================================================
 -export([start_worker/4]).
 
-start_worker(Name, Module, Function, Args) ->
+start_worker(PoolName, Module, Function, Args) ->
 	{ok, Pid} = apply(Module, Function, Args),
-    worker_pool:add_worker(Name, Pid),
-    {ok, Pid}.
+	worker_pool:add_worker(PoolName, Pid),
+	{ok, Pid}.
 
 %% ====================================================================
 %% Internal functions
