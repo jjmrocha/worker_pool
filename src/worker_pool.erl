@@ -114,7 +114,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 
 add_worker_to_list(Worker, Workers) ->
-	[Worker|Workers].
+	case lists:member(Worker, Workers) of
+		true -> Workers;
+		false -> [Worker|Workers]
+	end.
 
 next_worker([Worker|T]) ->
 	Workers = T ++ [Worker],
