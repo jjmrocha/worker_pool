@@ -28,7 +28,8 @@
 	add_worker/2,
 	cast/2,
 	call/2,
-	call/3]).
+	call/3,
+	multicast/2]).
 
 start_link(PoolName) ->
 	gen_server:start_link({local, PoolName}, ?MODULE, [PoolName], []).
@@ -50,6 +51,9 @@ call(PoolName, Msg, Timeout) ->
 		{ok, Pid} -> gen_server:call(Pid, Msg, Timeout);
 		Other -> {error, Other}
 	end.
+
+multicast(PoolName, Msg) ->
+	gen_server:cast(PoolName, {multicast, Msg}).
 
 %% ====================================================================
 %% Behavioural functions
@@ -74,6 +78,12 @@ handle_call(_Request, _From, State) ->
 
 %% handle_cast/2
 handle_cast(_Msg, State=?EMPTY) ->
+	{noreply, State};
+handle_cast({multicast, Msg}, State) ->
+	Workers = all_workers(State),
+	lists:foreach(fun(Worker) -> 
+				gen_server:cast(Worker, Msg)
+		end, Workers),
 	{noreply, State};
 handle_cast(Msg, State) ->
 	{Worker, NewState} = next_worker(State),
@@ -112,3 +122,6 @@ next_worker([Worker|T]) ->
 
 delete_worker(Worker, Workers) ->
 	lists:delete(Worker, Workers).
+
+all_workers(Workers) -> 
+	Workers.
