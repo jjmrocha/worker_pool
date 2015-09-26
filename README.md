@@ -81,12 +81,15 @@ Create a module with your worker's logic, the following example uses an ```gen_s
 -export([start_link/0]).
 -export([add/2, print/1]).
 
+%% Starts a worker process, each worker process will be a gen_server
 start_link() ->
     gen_server:start_link(?MODULE, [], []).
 
+%% Sends a call request to one off the worker processes
 add(A, B) ->
     worker_pool:call(?MODULE, {add, A, B}).
 
+%% Sends a cast message for all worker processes
 print(Msg) ->
     worker_pool:multicast(?MODULE, Msg).
 
