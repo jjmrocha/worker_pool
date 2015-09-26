@@ -27,6 +27,12 @@
   start_pool/3,
   stop_pool/1]).
 
+-spec start_pool(PoolName, StartFunction) -> supervisor:startlink_ret() when
+  PoolName :: atom(),
+  StartFunction :: {Module, Function, Args},
+  Module :: atom(),
+  Function :: atom(),
+  Args :: list().
 start_pool(PoolName, {Module, Function, Args}) when is_atom(PoolName) 
     andalso is_atom(Module) 
     andalso is_atom(Module) 
@@ -34,6 +40,13 @@ start_pool(PoolName, {Module, Function, Args}) when is_atom(PoolName)
   WorkerCount = erlang:system_info(schedulers),
   start_pool(PoolName, WorkerCount, {Module, Function, Args}).
 
+-spec start_pool(PoolName, WorkerCount, StartFunction) -> supervisor:startlink_ret() when
+  PoolName :: atom(),
+  WorkerCount :: integer(),
+  StartFunction :: {Module, Function, Args},
+  Module :: atom(),
+  Function :: atom(),
+  Args :: list().
 start_pool(PoolName, WorkerCount, {Module, Function, Args}) when is_atom(PoolName) 
     andalso is_integer(WorkerCount) 
     andalso is_atom(Module) 
@@ -42,13 +55,15 @@ start_pool(PoolName, WorkerCount, {Module, Function, Args}) when is_atom(PoolNam
   SuperName = supervisor_name(PoolName),
   supervisor:start_link({local, SuperName}, ?MODULE, [PoolName, WorkerCount, Module, Function, Args]).
 
+-spec stop_pool(PoolName :: atom()) -> ok.
 stop_pool(PoolName) when is_atom(PoolName) ->
   SuperName = supervisor_name(PoolName),
   case whereis(SuperName) of
     undefined -> ok;
     Pid ->
       unlink(Pid),
-      exit(Pid, shutdown)
+      exit(Pid, shutdown),
+      ok
   end.
 
 %% ====================================================================

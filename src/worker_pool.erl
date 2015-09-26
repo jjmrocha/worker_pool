@@ -37,21 +37,25 @@ start_link(PoolName) ->
 add_worker(PoolName, Pid) ->
 	gen_server:call(PoolName, {add_worker, Pid}).
 
+-spec cast(PoolName :: atom(), Msg :: term()) -> ok.
 cast(PoolName, Msg) ->
 	gen_server:cast(PoolName, Msg).
 
+-spec call(PoolName :: atom(), Msg :: term()) -> term().
 call(PoolName, Msg) ->
 	case gen_server:call(PoolName, {next_worker}) of
 		{ok, Pid} -> gen_server:call(Pid, Msg);
 		Other -> {error, Other}
 	end.
 
+-spec call(PoolName :: atom(), Msg :: term(), Timeout :: integer()) -> term().
 call(PoolName, Msg, Timeout) ->
 	case gen_server:call(PoolName, {next_worker}) of
 		{ok, Pid} -> gen_server:call(Pid, Msg, Timeout);
 		Other -> {error, Other}
 	end.
 
+-spec multicast(PoolName :: atom(), Msg :: term) -> ok.
 multicast(PoolName, Msg) ->
 	gen_server:cast(PoolName, {multicast, Msg}).
 
