@@ -58,7 +58,7 @@ worker_pool:call(PoolName :: atom(), Msg :: term()) -> term().
 
 worker_pool:call(PoolName :: atom(), Msg :: term(), Timeout :: integer()) -> term().
 
-worker_pool:multicast(PoolName :: atom(), Msg :: term) -> ok.   
+worker_pool:multicast(PoolName :: atom(), Msg :: term()) -> ok.   
 ```
 
 Additionally all messages received by the ```worker_pool``` process will be forwarded to one of the worker pool processes.
