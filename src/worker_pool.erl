@@ -1,5 +1,5 @@
 %%
-%% Copyright 2015 Joaquim Rocha <jrocha@gmailbox.org>
+%% Copyright 2015-16 Joaquim Rocha <jrocha@gmailbox.org>
 %% 
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -43,17 +43,15 @@ cast(PoolName, Msg) ->
 
 -spec call(PoolName :: atom(), Msg :: term()) -> term().
 call(PoolName, Msg) ->
-	case gen_server:call(PoolName, {next_worker}) of
-		{ok, Pid} -> gen_server:call(Pid, Msg);
-		Other -> {error, Other}
-	end.
+	with_worker(PoolName, fun(Worker) -> 
+			gen_server:call(Worker, Msg) 
+		end).
 
 -spec call(PoolName :: atom(), Msg :: term(), Timeout :: integer()) -> term().
 call(PoolName, Msg, Timeout) ->
-	case gen_server:call(PoolName, {next_worker}) of
-		{ok, Pid} -> gen_server:call(Pid, Msg, Timeout);
-		Other -> {error, Other}
-	end.
+	with_worker(PoolName, fun(Worker) -> 
+			gen_server:call(Worker, Msg, Timeout)
+		end).
 
 -spec multicast(PoolName :: atom(), Msg :: term) -> ok.
 multicast(PoolName, Msg) ->
@@ -116,6 +114,12 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
+
+with_worker(Poolname, Fun) ->
+	case gen_server:call(PoolName, {next_worker}) of
+		{ok, Pid} -> Fun(Pid);
+		Other -> {error, Other}
+	end.
 
 add_worker_to_list(Worker, Workers) ->
 	case lists:member(Worker, Workers) of
