@@ -115,7 +115,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% ====================================================================
 
-with_worker(Poolname, Fun) ->
+with_worker(PoolName, Fun) ->
 	case gen_server:call(PoolName, {next_worker}) of
 		{ok, Pid} -> Fun(Pid);
 		Other -> {error, Other}
