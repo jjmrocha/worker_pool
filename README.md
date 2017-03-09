@@ -1,5 +1,7 @@
 **DEPRECATED**
+
 *Use async_pool from [jjmrocha/async](https://github.com/jjmrocha/async) instead*
+
 ===============
 
 **worker_pool**
